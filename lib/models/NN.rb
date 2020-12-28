@@ -350,6 +350,7 @@ module FastNeurons
     # @since 1.0.0
     def input_to(row, *values)
       @a[row] = N[values.flatten, :dtype => :float64].transpose
+       #puts @a[row].size
     end
 
     # Compute multiply accumulate of inputs, weights and biases.
@@ -401,6 +402,19 @@ module FastNeurons
       end
     end
 
+    # Compute from the any layer to the output layer.
+    # The main use is for post-learning confirmation.
+    # @param [Integer] row the number of layer you want to begin computing
+    # row's range -> 1 ~ @neuron_columns.size - 1
+    # @since 1.0.0
+    def propagate_until(row)
+      0.upto(row-1) do |i|
+        compute_z(i)
+        compute_a(i)
+        #puts @a[i].size
+      end
+    end
+
     # Compute backpropagation and update parameters.
     # @since 1.0.0
     def backpropagate
@@ -411,6 +425,45 @@ module FastNeurons
         # the process in all cases except Softmax with cross entropy
         differentiate_activation_function(@neuron_columns.size-1)
         @delta[@neuron_columns.size-1] = @loss_derivative.call(@T, @a[-1]) * @derivative_activation_function[@neuron_columns.size-1] * @coefficients
+      end
+
+      # Compute loss derivatives. 
+      compute_weights_derivatives(@neuron_columns.size-1)
+      compute_biases_derivatives(@neuron_columns.size-1)
+
+      (@neuron_columns.size-2).downto(0) do |i|
+        differentiate_activation_function(i)
+        compute_delta(i)
+        compute_weights_derivatives(i)
+        compute_biases_derivatives(i)
+      end
+
+      # If updating parameters is enable, updates biases and weights.
+      if @updating_is_enabled
+        if @count == @batch_size
+          @count = 0
+          update_parameters
+        end
+      end
+    end
+
+    def backpropagate_Alter(row)
+      # If Softmax function is used on output layer with cross entropy function as loss function, do the following process.
+      if @keys[-1] == :Softmax
+        @delta[@neuron_columns.size-1] = @derivatives[-1].call(@T, @a[-1])*(1-row)*100
+      #@delta[@neuron_columns.size-1] = @derivatives[-1].call(@T, NMatrix[Array.new(@a[-1].size,row)].transpose)
+      else
+        # the process in all cases except Softmax with cross entropy
+        differentiate_activation_function(@neuron_columns.size-1)
+        #puts "aaa"
+        #puts @delta[@neuron_columns.size-1]
+        #puts "aa"
+        #puts NMatrix.ones_like(@a[@neuron_columns.size]).size
+        #puts NMatrix.ones_like(@T).shape
+        #puts NMatrix[Array.new(@a[-1].size,row)].shape
+        #puts @loss_derivative.call(NMatrix.ones_like(@T), NMatrix[Array.new(@a[-1].size,row)].transpose)
+        @delta[@neuron_columns.size-1] = @loss_derivative.call(@T, @a[-1]) * @derivative_activation_function[@neuron_columns.size-1] * @coefficients*(1-row)*100
+       #@delta[@neuron_columns.size-1] = @loss_derivative.call(@T, NMatrix[Array.new(@a[-1].size,row)].transpose) * @derivative_activation_function[@neuron_columns.size-1] * @coefficients
       end
 
       # Compute loss derivatives. 
@@ -480,6 +533,10 @@ module FastNeurons
         else
           # the process in all cases except Softmax with cross entropy
           differentiate_activation_function(@neuron_columns.size-1)
+          #puts @T.size
+         # puts @a[-1].size
+          #puts @T
+         # puts @a[-1]
           @delta[@neuron_columns.size-1] = @loss_derivative.call(@T, @a[-1]) * @derivative_activation_function[@neuron_columns.size-1] * @coefficients
         end
 
@@ -517,7 +574,9 @@ module FastNeurons
     # Compute derivatives of weights.
     # @param [Integer] row the number of layer currently computing
     # @since 1.2.0
-    def compute_weights_derivatives(row)                  
+    def compute_weights_derivatives(row)   
+      #p  @loss_derivative_weights[row].size
+      #p NMatrix::BLAS.gemm(@delta[row], @a[row].transpose).size
       @loss_derivative_weights[row] += NMatrix::BLAS.gemm(@delta[row], @a[row].transpose)      
     end
 
@@ -613,7 +672,7 @@ module FastNeurons
     # Initialize and output loss by loss function.
     # @since 1.8.0
     def initialize_loss
-      puts "loss : #{@loss}"
+      #puts "loss : #{@loss}"
       @loss = 0.0
     end
     
@@ -659,6 +718,8 @@ module FastNeurons
     # @param [Array] teaching_data teaching data of neural network
     # @since 1.3.0
     def set_teaching_data(teaching_data = nil)
+      #puts teaching_data
+      #puts N[teaching_data.flatten, :dtype => :float64].transpose
       @T = teaching_data.nil? ? NMatrix.zeros_like(@a[@neuron_columns.size]) : N[teaching_data.flatten, :dtype => :float64].transpose
     end
 

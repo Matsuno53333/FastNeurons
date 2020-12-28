@@ -238,6 +238,8 @@ module FastNeurons
   # @return [NMatrix] a vector of NMatrix that each elements are differentiated
   # @since 1.5.0
   def self.differentiate_mean_square(t, a)
+    #puts t.size
+    #puts a.size
     return -(t - a) * (2.0 / a.size)
   end
 
