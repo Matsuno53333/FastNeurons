@@ -634,6 +634,7 @@ module FastNeurons
         update_weights(i)
         update_biases(i)
       end
+      initialize_loss_derivatives
     end
     
     # Compute backpropagation from output layer until any layer.
@@ -645,6 +646,7 @@ module FastNeurons
         update_weights(i)
         update_biases(i)
       end
+      initialize_loss_derivatives
     end
 
     # Store parameters(biases and weights).
