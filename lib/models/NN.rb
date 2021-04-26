@@ -176,6 +176,12 @@ module FastNeurons
         when :Ones
           # Initialize weights with ones.
           @weights.push(NMatrix.new(@weights_geometry[i], 1.0))
+        when :Halfs
+          # Initialize weights with 0.5s.
+          @weights.push(NMatrix.new(@weights_geometry[i], 0.5))
+        when :OneTenths
+          # Initialize weights with one_tenths.
+          @weights.push(NMatrix.new(@weights_geometry[i], 0.1))
         when :GlorotUniform
           # Initialize weights with a random number from a Glorot's uniform distribution.
           limit = Math.sqrt(6.0 / (fan_in + fan_out))
@@ -235,6 +241,12 @@ module FastNeurons
         when :Ones
           # Initialize biases with ones.          
           @biases.push(NMatrix.new(@biases_geometry[i], 1.0))
+        when :Halfs
+          # Initialize weights with ones.
+          @biases.push(NMatrix.new(@biases_geometry[i], 0.5))
+        when :OneTenths
+          # Initialize weights with ones.
+          @biases.push(NMatrix.new(@biases_geometry[i], 0.1))
         when :GlorotUniform
           # Initialize weights with a random number from a Glorot's uniform distribution.
           limit = Math.sqrt(6.0 / (fan_in + fan_out))
@@ -576,6 +588,8 @@ module FastNeurons
     # @since 1.2.0
     def compute_weights_derivatives(row)   
       #p  @loss_derivative_weights[row].size
+      #p "d:"+@delta[row].size.to_s
+      #p @a
       #p NMatrix::BLAS.gemm(@delta[row], @a[row].transpose).size
       @loss_derivative_weights[row] += NMatrix::BLAS.gemm(@delta[row], @a[row].transpose)      
     end
